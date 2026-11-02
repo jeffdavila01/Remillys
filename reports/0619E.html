@@ -626,6 +626,14 @@
     th{background:rgba(9,41,75,.82)}
     .filter-row th{background:rgba(234,240,246,.72)!important}
 
+
+    /* Keep wide report columns reachable; the glass panel style hides overflow. */
+    @media screen {
+      .table-wrapper{max-width:100%;overflow-x:scroll;overflow-y:auto;scrollbar-gutter:stable}
+      .table-wrapper::-webkit-scrollbar{width:12px;height:12px}
+      .table-wrapper::-webkit-scrollbar-track{background:#eee6d9;border-radius:8px}
+      .table-wrapper::-webkit-scrollbar-thumb{background:#8a7a68;border:2px solid #eee6d9;border-radius:8px}
+    }
   </style>
 </head>
 
@@ -785,7 +793,7 @@
       <span>Filters work together across all 11 columns.</span>
     </div>
 
-    <div class="table-wrapper">
+    <div class="table-wrapper" tabindex="0" role="region" aria-label="Report table. Scroll horizontally to view all columns.">
 
       <table id="reportTable">
 
