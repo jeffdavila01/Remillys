@@ -1,0 +1,19 @@
+REMILLY’S OWNER + STAFF ACCOUNT SYSTEM
+
+1) In Supabase create a new project and enable Email authentication.
+2) Run supabase-setup.sql using Supabase SQL Editor.
+3) Copy your Supabase Project URL and publishable (anon) key to supabase-config.js.
+   Never use service_role or other secret keys in frontend.
+4) In Authentication > URL Configuration, add the exact Live Server URL to your redirect allow list (e.g. http://127.0.0.1:5500/**).
+5) Start VS Code Live Server. Select Create staff account and register your intended Owner email.
+6) If email confirmation is enabled, confirm that email first.
+7) In Supabase SQL Editor run the UPDATE command at the bottom of supabase-setup.sql replacing YOUR_OWNER_EMAIL@example.com with your actual address.
+8) Refresh, log in as Owner, and open User Management to approve staff and grant permissions.
+9) Other users can register then remain PENDING until Owner approves them.
+
+SECURITY LIMITS TO KNOW:
+- Owner/staff permissions for profiles are enforced in Supabase via RLS.
+- This is a frontend-only website, and the Excel processing is local in each browser session.
+- The Documents page uses browser IndexedDB, not shared Supabase Storage.
+- Permission gates in the website do not make locally stored documents or generated Excel files secure across machines. For confidential multi-user tax records, migrate files and reports to Supabase Storage + database with server-enforced RLS policies before production.
+- For production deployment use HTTPS, restricted signup policies, MFA for Owner, and reviewed database rules.

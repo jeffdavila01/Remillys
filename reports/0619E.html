@@ -1,0 +1,1792 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Excel Accounting Report Generator</title>
+
+  <!-- Excel Reader and Writer -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --navy: #09294b;
+      --navy2: #123e68;
+      --gold: #e6b94a;
+      --bg: #f3f6fa;
+      --text: #1b2938;
+      --muted: #718096;
+      --border: #dce4ed;
+      --white: rgba(255,255,255,.16);
+      --green: #168653;
+      --red: #d14343;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: auto;
+    }
+
+    .header {
+      background: linear-gradient(120deg, var(--navy), var(--navy2));
+      color: white;
+      border-radius: 14px;
+      padding: 25px 30px;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 25px;
+      letter-spacing: .3px;
+    }
+
+    .header p {
+      margin: 0;
+      font-size: 13px;
+      color: #d5e3f1;
+    }
+
+    .header .tag {
+      color: var(--gold);
+      font-size: 11px;
+      letter-spacing: 2px;
+      font-weight: bold;
+      margin-bottom: 9px;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 23px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 12px rgba(20,40,70,.04);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: var(--navy);
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .upload-area {
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      min-height: 190px;
+      border: 1.5px dashed rgba(230,185,74,.72);
+      border-radius: 14px;
+      padding: 30px 22px;
+      text-align: center;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(230,185,74,.17), transparent 55%),
+        linear-gradient(135deg, #09294b 0%, #123e68 58%, #0b3156 100%);
+      cursor: pointer;
+      transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 22px rgba(9,41,75,.10);
+    }
+
+    .upload-area::before,
+    .upload-area::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      border: 1px solid rgba(230,185,74,.10);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .upload-area::before {
+      width: 220px;
+      height: 220px;
+      top: -150px;
+      right: -55px;
+    }
+
+    .upload-area::after {
+      width: 170px;
+      height: 170px;
+      bottom: -135px;
+      left: -35px;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: #f4d27b;
+      background:
+        radial-gradient(circle at 50% -20%, rgba(230,185,74,.24), transparent 58%),
+        linear-gradient(135deg, #0b3156 0%, #174a78 58%, #0d385f 100%);
+      box-shadow: 0 12px 28px rgba(9,41,75,.18), 0 0 0 4px rgba(230,185,74,.10);
+      transform: translateY(-1px);
+    }
+
+    .upload-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 3px;
+      border: 1px solid rgba(230,185,74,.48);
+      border-radius: 16px;
+      color: var(--gold);
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 5px 18px rgba(0,0,0,.12);
+    }
+
+    .upload-icon svg {
+      width: 27px;
+      height: 27px;
+      stroke: currentColor;
+    }
+
+    .upload-area strong {
+      display: block;
+      color: #fff;
+      font-size: 14px;
+      letter-spacing: .15px;
+      margin: 2px 0 0;
+    }
+
+    .upload-area small {
+      color: #c4d3e2;
+      font-size: 11px;
+    }
+
+    .upload-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+      padding: 6px 11px;
+      border: 1px solid rgba(230,185,74,.25);
+      border-radius: 20px;
+      color: #f0d58e;
+      background: rgba(230,185,74,.08);
+      font-size: 10px;
+      letter-spacing: .3px;
+    }
+
+    .upload-hint span {
+      color: var(--gold);
+      font-size: 12px;
+    }
+
+    .upload-area:focus-visible {
+      outline: 3px solid rgba(230,185,74,.55);
+      outline-offset: 3px;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .file-info {
+      display: none;
+      margin-top: 14px;
+      background: #eef7f2;
+      border: 1px solid #c7e6d4;
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #176b42;
+    }
+
+    .selection-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 20px;
+      margin-top: 22px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      color: #45566b;
+      margin-bottom: 9px;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: white;
+      font-size: 13px;
+      outline: none;
+      color: var(--text);
+    }
+
+    select:focus {
+      border-color: var(--navy2);
+    }
+
+    .sheet-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .sheet-toolbar {
+      padding: 11px 13px;
+      background: #f5f8fb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sheet-toolbar span {
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .sheet-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .sheet-actions button {
+      border: none;
+      background: transparent;
+      color: #245b8e;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .sheet-list {
+      max-height: 220px;
+      overflow-y: auto;
+      padding: 8px 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .sheet-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px;
+      background: #f8fafc;
+      border: 1px solid #edf1f5;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .sheet-item:hover {
+      background: #edf4fb;
+    }
+
+    .sheet-item input {
+      accent-color: var(--navy);
+    }
+
+    .sheet-count {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 9px 13px;
+      border-top: 1px solid var(--border);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    .btn {
+      border: none;
+      padding: 12px 20px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--navy2);
+    }
+
+    .btn-gold {
+      background: var(--gold);
+      color: #26374a;
+    }
+
+    .btn-outline {
+      background: white;
+      color: var(--navy);
+      border: 1px solid var(--border);
+    }
+
+    .btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      display: none;
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .status.success {
+      display: block;
+      background: #eaf7ef;
+      color: #176b42;
+    }
+
+    .status.error {
+      display: block;
+      background: #fff0f0;
+      color: #ae3030;
+    }
+
+    .status.loading {
+      display: block;
+      background: #edf4fb;
+      color: var(--navy);
+    }
+
+    .report-panel {
+      display: none;
+    }
+
+    .report-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 17px;
+    }
+
+    .report-heading h2 {
+      color: var(--navy);
+      font-size: 17px;
+      margin: 0 0 5px;
+    }
+
+    .report-heading p {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+
+    .stat small {
+      color: var(--muted);
+      font-size: 10px;
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .stat strong {
+      color: var(--navy);
+      font-size: 18px;
+    }
+
+    .table-wrapper {
+      overflow: auto;
+      max-height: 600px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1250px;
+      font-size: 11px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    th {
+      background: #09294b;
+      color: white;
+      padding: 11px 10px;
+      text-align: left;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
+    .sort-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .sort-header:hover {
+      color: #f4d27b;
+    }
+
+    .sort-header span {
+      color: #f0cf78;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e9eef4;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f7f9fc;
+    }
+
+    tbody tr:hover {
+      background: #edf4fb;
+    }
+
+    .amount {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Individual column filters */
+    .filter-row th {
+      background: #eaf0f6 !important;
+      padding: 5px;
+      position: sticky;
+      top: 37px;
+      z-index: 3;
+    }
+
+    .column-filter {
+      display: block;
+      width: 100%;
+      min-width: 85px;
+      padding: 7px 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #fff;
+      color: #24364b;
+      font-size: 10px;
+      font-weight: normal;
+      outline: none;
+    }
+
+    .column-filter:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 2px rgba(230,185,74,.16);
+    }
+
+    .filter-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .filter-summary strong {
+      color: var(--navy);
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .header, #uploadPanel, .report-heading .button-row,
+      .filter-summary, .report-panel > .button-row, .footer {
+        display: none !important;
+      }
+      .report-panel { display: block !important; border: 0; box-shadow: none; }
+      .table-wrapper { max-height: none; overflow: visible; }
+      .filter-row { display: none !important; }
+      thead { position: static; }
+      th { background: #09294b !important; color: #fff !important; }
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: var(--muted);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 15px;
+    }
+
+    @media(max-width: 750px) {
+      body {
+        padding: 12px;
+      }
+
+      .selection-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sheet-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .header {
+        padding: 20px;
+      }
+
+      .panel {
+        padding: 15px;
+      }
+    }
+
+    /* Glassmorphism upgrade */
+    body{background:linear-gradient(140deg,#efe7db 0%,#f7f2eb 44%,#eee6d9 100%);position:relative}
+    body::before,body::after{content:"";position:fixed;width:300px;height:300px;border-radius:50%;filter:blur(55px);opacity:.5;pointer-events:none;z-index:-1}
+    body::before{left:-70px;top:-70px;background:rgba(230,185,74,.28)}
+    body::after{right:-90px;bottom:-80px;background:rgba(18,62,104,.16)}
+    .header,.panel,.upload-area,.sheet-box,.stat,.table-wrapper,.file-info,.status,select,.btn-outline{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .header,.panel,.sheet-box,.stat,.table-wrapper{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.24);box-shadow:0 18px 45px rgba(39,22,10,.12)}
+    .header::before,.panel::before,.sheet-box::before,.stat::before,.table-wrapper::before{content:"";position:absolute;left:1px;right:1px;top:1px;height:42%;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0));pointer-events:none}
+    .panel{background:rgba(255,255,255,.18)}
+    .sheet-box,.stat,.table-wrapper{background:rgba(255,255,255,.14)}
+    .upload-area{border-radius:22px;border:1.5px dashed rgba(230,185,74,.52);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 16px 32px rgba(9,41,75,.16)}
+    .btn{border-radius:15px;position:relative;overflow:hidden;box-shadow:0 10px 25px rgba(56,41,26,.14), inset 0 1px 0 rgba(255,255,255,.12)}
+    .btn::before{content:"";position:absolute;left:1px;right:1px;top:1px;height:50%;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0));pointer-events:none}
+    .btn-outline{background:rgba(255,255,255,.18)}
+    .sheet-item,.column-filter,select{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);border-radius:12px}
+    tbody tr:nth-child(even){background:rgba(255,255,255,.08)}
+    tbody tr:hover{background:rgba(255,255,255,.18)}
+    th{background:rgba(9,41,75,.82)}
+    .filter-row th{background:rgba(234,240,246,.72)!important}
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <header class="header">
+    <div class="tag">ACCOUNTING AUTOMATION SYSTEM</div>
+    <h1>Excel Accounting Report Generator</h1>
+    <p>Upload, consolidate and generate your standardized accounting report.</p>
+  </header>
+
+  <!-- UPLOAD PANEL -->
+  <section class="panel" id="uploadPanel">
+
+    <div class="section-title">01 / Upload Excel Workbook</div>
+    <div class="section-subtitle">
+      Upload the original Excel workbook containing your accounting records.
+    </div>
+
+    <div class="upload-area" id="dropArea" role="button" tabindex="0"
+         aria-label="Upload or drag and drop an Excel workbook">
+      <div class="upload-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/>
+          <path d="M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3"/>
+        </svg>
+      </div>
+      <strong>Upload your Excel workbook</strong>
+      <small>Drag and drop your file here, or click to browse</small>
+      <div class="upload-hint"><span>✦</span> EXCEL FILES · XLSX / XLS</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+    </div>
+
+    <div class="file-info" id="fileInfo"></div>
+
+    <div class="selection-grid">
+
+      <!-- MONTH -->
+      <div>
+        <label class="field-label">02 / SELECT MONTH</label>
+
+        <select id="monthSelect">
+          <option value="">Select Month</option>
+          <option>January</option>
+          <option>February</option>
+          <option>March</option>
+          <option>April</option>
+          <option>May</option>
+          <option>June</option>
+          <option>July</option>
+          <option>August</option>
+          <option>September</option>
+          <option>October</option>
+          <option>November</option>
+          <option>December</option>
+        </select>
+      </div>
+
+      <!-- SHEETS -->
+      <div>
+        <label class="field-label">03 / SELECT WORKSHEETS</label>
+
+        <div class="sheet-box">
+
+          <div class="sheet-toolbar">
+            <span>Available Worksheets</span>
+
+            <div class="sheet-actions">
+              <button onclick="selectAllSheets(true)">SELECT ALL</button>
+              <button onclick="selectAllSheets(false)">CLEAR</button>
+            </div>
+          </div>
+
+          <div class="sheet-list" id="sheetList">
+            <div class="empty">Upload Excel to load sheets.</div>
+          </div>
+
+          <div class="sheet-count" id="sheetCount">
+            0 sheets available
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div class="button-row">
+      <button class="btn btn-primary" id="generateBtn"
+        onclick="generateReport()" disabled>
+        ⚡ GENERATE REPORT
+      </button>
+
+      <button class="btn btn-outline" onclick="resetSystem()">
+        RESET
+      </button>
+    </div>
+
+    <div class="status" id="statusBox"></div>
+
+  </section>
+
+  <!-- REPORT PANEL -->
+  <section class="panel report-panel" id="reportPanel">
+
+    <div class="report-heading">
+      <div>
+        <h2>Generated Accounting Report</h2>
+        <p id="reportDescription">Consolidated report preview</p>
+      </div>
+
+      <div class="button-row" style="margin:0">
+        <button class="btn btn-gold" onclick="downloadExcel()">
+          ↓ DOWNLOAD EXCEL
+        </button>
+
+        <button class="btn btn-outline" onclick="downloadCSV()">
+          ↓ DOWNLOAD CSV
+        </button>
+
+        <button class="btn btn-outline" onclick="clearFilters()">
+          CLEAR FILTERS
+        </button>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="stats">
+
+      <div class="stat">
+        <small>TOTAL RECORDS</small>
+        <strong id="totalRecords">0</strong>
+      </div>
+
+      <div class="stat">
+        <small>SELECTED SHEETS</small>
+        <strong id="totalSheets">0</strong>
+      </div>
+
+      <div class="stat">
+        <small>TOTAL DEBIT</small>
+        <strong id="totalDebit">0.00</strong>
+      </div>
+
+      <div class="stat">
+        <small>TOTAL CREDIT</small>
+        <strong id="totalCredit">0.00</strong>
+      </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="filter-summary">
+      <span id="filterResultText">Showing all records</span>
+      <span>Filters work together across all 11 columns.</span>
+    </div>
+
+    <div class="table-wrapper">
+
+      <table id="reportTable">
+
+        <thead>
+          <tr>
+            <th>SHEET NAME</th>
+            <th>MONTH</th>
+            <th>BUSINESS ACTIVITY</th>
+            <th>TIN NO.</th>
+            <th><button type="button" class="sort-header" id="payeeSortBtn" onclick="togglePayeeSort()" aria-label="Sort payee A to Z">PAYEE <span id="payeeSortIcon">↕</span></button></th>
+            <th>PARTICULAR</th>
+            <th>DEBIT ACCOUNT TITLE</th>
+            <th>Dr AMOUNT</th>
+            <th>TAX TYPE</th>
+            <th>CREDIT ACCOUNT TITLE</th>
+            <th>Cr AMOUNT</th>
+          </tr>
+          <tr class="filter-row">
+            <th><input class="column-filter" data-col="0" aria-label="Filter sheet name" placeholder="Filter sheet..."></th>
+            <th><input class="column-filter" data-col="1" aria-label="Filter month" placeholder="Filter month..."></th>
+            <th><input class="column-filter" data-col="2" aria-label="Filter business activity" placeholder="Filter activity..."></th>
+            <th><input class="column-filter" data-col="3" aria-label="Filter TIN" placeholder="Filter TIN..."></th>
+            <th><input class="column-filter" data-col="4" aria-label="Filter payee" placeholder="Filter payee..."></th>
+            <th><input class="column-filter" data-col="5" aria-label="Filter particular" placeholder="Filter particular..."></th>
+            <th><input class="column-filter" data-col="6" aria-label="Filter debit account title" placeholder="Filter debit account..."></th>
+            <th><input class="column-filter" data-col="7" aria-label="Filter debit amount" placeholder="Filter Dr..."></th>
+            <th><input class="column-filter" data-col="8" aria-label="Filter tax type" placeholder="Filter tax..."></th>
+            <th><input class="column-filter" data-col="9" aria-label="Filter credit account title" placeholder="Filter credit account..."></th>
+            <th><input class="column-filter" data-col="10" aria-label="Filter credit amount" placeholder="Filter Cr..."></th>
+          </tr>
+        </thead>
+
+        <tbody id="reportBody">
+          <tr>
+            <td colspan="11" class="empty">No report generated.</td>
+          </tr>
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="button-row">
+      <button class="btn btn-primary" onclick="window.print()">
+        PRINT REPORT
+      </button>
+    </div>
+
+  </section>
+
+  <div class="footer">
+    Excel Accounting Report Generator | Powered by Google Apps Script
+  </div>
+
+</div>
+
+<script>
+
+  // ==========================================
+  // GLOBAL VARIABLES
+  // ==========================================
+
+  let workbook = null;
+  let generatedData = [];
+  let selectedFileName = "";
+  let payeeSortDirection = "asc"; // asc = A-Z, desc = Z-A
+  let payeeSortEnabled = false;
+
+  const HEADERS = [
+    "SHEET NAME",
+    "MONTH",
+    "BUSINESS ACTIVITY",
+    "TIN NO.",
+    "PAYEE",
+    "PARTICULAR",
+    "DEBIT ACCOUNT TITLE",
+    "Dr AMOUNT",
+    "TAX TYPE",
+    "CREDIT ACCOUNT TITLE",
+    "Cr AMOUNT"
+  ];
+
+  // ==========================================
+  // FILE UPLOAD
+  // ==========================================
+
+  const fileInput = document.getElementById("fileInput");
+  const dropArea = document.getElementById("dropArea");
+
+  dropArea.addEventListener("click", () => {
+    fileInput.click();
+  });
+
+  dropArea.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  fileInput.addEventListener("change", event => {
+    const file = event.target.files[0];
+
+    if (file) {
+      loadWorkbook(file);
+    }
+  });
+
+  dropArea.addEventListener("dragover", event => {
+    event.preventDefault();
+    dropArea.classList.add("dragover");
+  });
+
+  dropArea.addEventListener("dragleave", () => {
+    dropArea.classList.remove("dragover");
+  });
+
+  dropArea.addEventListener("drop", event => {
+    event.preventDefault();
+    dropArea.classList.remove("dragover");
+
+    const file = event.dataTransfer.files[0];
+
+    if (file) {
+      loadWorkbook(file);
+    }
+  });
+
+  async function loadWorkbook(file) {
+
+    const extension = file.name.split(".").pop().toLowerCase();
+
+    if (!["xlsx", "xls"].includes(extension)) {
+      showStatus("Please upload a valid Excel file.", "error");
+      return;
+    }
+
+    try {
+
+      showStatus("Reading Excel workbook...", "loading");
+
+      const buffer = await file.arrayBuffer();
+
+      workbook = XLSX.read(buffer, {
+        type: "array",
+        cellDates: true
+      });
+
+      selectedFileName = file.name;
+
+      document.getElementById("fileInfo").style.display = "block";
+
+      document.getElementById("fileInfo").innerHTML =
+        "✓ <strong>" + escapeHTML(file.name) +
+        "</strong> successfully loaded. " +
+        workbook.SheetNames.length + " worksheets found.";
+
+      displaySheets();
+
+      document.getElementById("generateBtn").disabled = false;
+
+      generatedData = [];
+      document.getElementById("reportPanel").style.display = "none";
+
+      showStatus("Excel workbook successfully loaded.", "success");
+
+    } catch (error) {
+
+      console.error(error);
+
+      workbook = null;
+
+      showStatus("Unable to read Excel file. Please check the workbook.", "error");
+
+    }
+  }
+
+  // ==========================================
+  // DISPLAY SHEETS
+  // ==========================================
+
+  function displaySheets() {
+
+    const container = document.getElementById("sheetList");
+
+    container.innerHTML = "";
+
+    workbook.SheetNames.forEach((sheetName, index) => {
+
+      const label = document.createElement("label");
+
+      label.className = "sheet-item";
+
+      const checkbox = document.createElement("input");
+
+      checkbox.type = "checkbox";
+      checkbox.value = sheetName;
+      checkbox.checked = true;
+      checkbox.className = "sheet-checkbox";
+
+      checkbox.addEventListener("change", updateSheetCount);
+
+      const span = document.createElement("span");
+      span.textContent = sheetName;
+
+      label.appendChild(checkbox);
+      label.appendChild(span);
+
+      container.appendChild(label);
+
+    });
+
+    updateSheetCount();
+
+  }
+
+  function selectAllSheets(select) {
+
+    document.querySelectorAll(".sheet-checkbox").forEach(box => {
+      box.checked = select;
+    });
+
+    updateSheetCount();
+
+  }
+
+  function updateSheetCount() {
+
+    const selected = getSelectedSheets();
+
+    const total = workbook ? workbook.SheetNames.length : 0;
+
+    document.getElementById("sheetCount").textContent =
+      selected.length + " of " + total + " worksheets selected";
+
+  }
+
+  function getSelectedSheets() {
+
+    return Array.from(
+      document.querySelectorAll(".sheet-checkbox:checked")
+    ).map(box => box.value);
+
+  }
+
+  // ==========================================
+  // HEADER NORMALIZATION
+  // ==========================================
+
+  function normalize(value) {
+
+    return String(value || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "");
+
+  }
+
+  function findHeaderRow(rows) {
+
+    // Search the first 30 rows for the accounting table header.
+
+    for (let r = 0; r < Math.min(rows.length, 30); r++) {
+
+      const normalized = rows[r].map(normalize);
+
+      const debitIndex = normalized.findIndex(v =>
+        v === "DEBITACCOUNTTITLE"
+      );
+
+      const creditIndex = normalized.findIndex(v =>
+        v === "CREDITACCOUNTTITLE"
+      );
+
+      const tinIndex = normalized.findIndex(v =>
+        v === "TINNO"
+      );
+
+      if (
+        debitIndex >= 0 &&
+        creditIndex >= 0 &&
+        tinIndex >= 0
+      ) {
+
+        return {
+          rowIndex: r,
+          headers: normalized
+        };
+
+      }
+
+    }
+
+    return null;
+
+  }
+
+  function findColumn(headers, names) {
+
+    const alternatives = names.map(normalize);
+
+    return headers.findIndex(header =>
+      alternatives.includes(header)
+    );
+
+  }
+
+  function getValue(row, index) {
+
+    if (index < 0 || index >= row.length) {
+      return "";
+    }
+
+    const value = row[index];
+
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    return String(value).trim();
+
+  }
+
+  function parseAmount(value) {
+
+    if (typeof value === "number") {
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    const cleaned = String(value || "")
+      .replace(/,/g, "")
+      .replace(/[₱$]/g, "")
+      .trim();
+
+    if (!cleaned) return 0;
+
+    const number = Number(cleaned);
+
+    return Number.isFinite(number) ? number : 0;
+
+  }
+
+  // ==========================================
+  // GENERATE REPORT
+  // ==========================================
+
+  function generateReport() {
+
+    if (!workbook) {
+      showStatus("Please upload an Excel workbook first.", "error");
+      return;
+    }
+
+    const month = document.getElementById("monthSelect").value;
+
+    if (!month) {
+      showStatus("Please select a month.", "error");
+      return;
+    }
+
+    const sheets = getSelectedSheets();
+
+    if (sheets.length === 0) {
+      showStatus("Please select at least one worksheet.", "error");
+      return;
+    }
+
+    const button = document.getElementById("generateBtn");
+
+    button.disabled = true;
+    button.textContent = "GENERATING...";
+
+    showStatus("Processing selected worksheets...", "loading");
+
+    try {
+
+      let results = [];
+      let skipped = [];
+
+      sheets.forEach(sheetName => {
+
+        const sheet = workbook.Sheets[sheetName];
+
+        if (!sheet) return;
+
+        const rows = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          raw: false,
+          defval: "",
+          blankrows: false
+        });
+
+        const headerInfo = findHeaderRow(rows);
+
+        if (!headerInfo) {
+          skipped.push(sheetName);
+          return;
+        }
+
+        const headers = headerInfo.headers;
+
+        // Identify columns by header name.
+        // This supports different column positions across sheets.
+
+        const columns = {
+
+          tin: findColumn(headers, [
+            "TIN NO.",
+            "TIN NO",
+            "TIN"
+          ]),
+
+          payee: findColumn(headers, [
+            "PAYEE"
+          ]),
+
+          particular: findColumn(headers, [
+            "PARTICULAR",
+            "PARTICULAR / PO#",
+            "DESCRIPTION"
+          ]),
+
+          debit: findColumn(headers, [
+            "DEBIT ACCOUNT TITLE"
+          ]),
+
+          debitAmount: findColumn(headers, [
+            "DR AMOUNT",
+            "DEBIT AMOUNT"
+          ]),
+
+          taxType: findColumn(headers, [
+            "TAX TYPE"
+          ]),
+
+          credit: findColumn(headers, [
+            "CREDIT ACCOUNT TITLE"
+          ]),
+
+          creditAmount: findColumn(headers, [
+            "CR AMOUNT",
+            "CREDIT AMOUNT"
+          ]),
+
+          business: findColumn(headers, [
+            "BUSINESS ACTIVITY",
+            "BUS. ACTIVITY",
+            "BUS ACTIVITY"
+          ])
+
+        };
+
+        // Require core accounting columns.
+        if (
+          columns.tin < 0 ||
+          columns.payee < 0 ||
+          columns.debit < 0 ||
+          columns.debitAmount < 0 ||
+          columns.credit < 0 ||
+          columns.creditAmount < 0
+        ) {
+
+          skipped.push(sheetName);
+          return;
+
+        }
+
+        // Process rows after the identified header.
+        for (
+          let r = headerInfo.rowIndex + 1;
+          r < rows.length;
+          r++
+        ) {
+
+          const row = rows[r];
+
+          if (!row || row.length === 0) continue;
+
+          const tin = getValue(row, columns.tin);
+          const payee = getValue(row, columns.payee);
+          const particular = getValue(row, columns.particular);
+          const debit = getValue(row, columns.debit);
+          const debitAmount = parseAmount(
+            getValue(row, columns.debitAmount)
+          );
+
+          const taxType = getValue(row, columns.taxType);
+          const credit = getValue(row, columns.credit);
+
+          const creditAmount = parseAmount(
+            getValue(row, columns.creditAmount)
+          );
+
+          const business = getValue(row, columns.business);
+
+          // Exclude completely empty/non-transaction rows.
+          const hasContent = [
+            tin,
+            payee,
+            particular,
+            debit,
+            credit,
+            debitAmount,
+            creditAmount
+          ].some(value => value !== "" && value !== 0);
+
+          if (!hasContent) continue;
+
+          // Exclude summary or total rows.
+          const combined = [
+            tin, payee, particular, debit, credit
+          ].join(" ").toUpperCase();
+
+          if (
+            combined.includes("SUMMARY OF DISBURSEMENT") ||
+            combined.includes("FOR THE MONTH OF") ||
+            combined.includes("GRAND TOTAL")
+          ) {
+            continue;
+          }
+
+          results.push({
+
+            sheetName: sheetName,
+            month: month,
+            business: business,
+            tin: tin,
+            payee: payee,
+            particular: particular,
+            debit: debit,
+            debitAmount: debitAmount,
+            taxType: taxType,
+            credit: credit,
+            creditAmount: creditAmount
+
+          });
+
+        }
+
+      });
+
+      generatedData = results;
+
+      // Start each newly generated report with all filters cleared.
+      document.querySelectorAll(".column-filter").forEach(input => {
+        input.value = "";
+      });
+      payeeSortEnabled = false;
+      payeeSortDirection = "asc";
+      const payeeSortIcon = document.getElementById("payeeSortIcon");
+      if (payeeSortIcon) payeeSortIcon.textContent = "↕";
+
+      if (generatedData.length === 0) {
+
+        showStatus(
+          "No accounting records were found. Check the selected worksheets and their column headers.",
+          "error"
+        );
+
+        if (skipped.length) {
+          console.warn("Skipped worksheets:", skipped);
+        }
+
+        return;
+
+      }
+
+      displayReport();
+
+      let message =
+        "Successfully generated " +
+        generatedData.length.toLocaleString() +
+        " records from " +
+        sheets.length +
+        " selected worksheets.";
+
+      if (skipped.length) {
+        message += " Skipped worksheets: " + skipped.join(", ") + ".";
+      }
+
+      showStatus(message, "success");
+
+      document.getElementById("reportPanel").scrollIntoView({
+        behavior: "smooth"
+      });
+
+    } catch (error) {
+
+      console.error(error);
+
+      showStatus(
+        "An error occurred while generating the report: " + error.message,
+        "error"
+      );
+
+    } finally {
+
+      button.disabled = false;
+      button.textContent = "⚡ GENERATE REPORT";
+
+    }
+
+  }
+
+  // ==========================================
+  // DISPLAY GENERATED REPORT
+  // ==========================================
+
+  // ==========================================
+  // FILTERING AND REPORT DISPLAY
+  // ==========================================
+
+  function getRecordValues(record) {
+    return [
+      record.sheetName,
+      record.month,
+      record.business,
+      record.tin,
+      record.payee,
+      record.particular,
+      record.debit,
+      formatAmount(record.debitAmount),
+      record.taxType,
+      record.credit,
+      formatAmount(record.creditAmount)
+    ];
+  }
+
+  function getFilteredData() {
+    const filters = Array.from(
+      document.querySelectorAll(".column-filter")
+    ).map(input => input.value.trim().toLocaleLowerCase());
+
+    const filtered = generatedData.filter(record => {
+      const values = getRecordValues(record);
+
+      return filters.every((filter, index) => {
+        if (!filter) return true;
+
+        return String(values[index] ?? "")
+          .toLocaleLowerCase()
+          .includes(filter);
+      });
+    });
+
+    if (payeeSortEnabled) {
+      filtered.sort((a, b) => {
+        const comparison = String(a.payee || "").localeCompare(
+          String(b.payee || ""),
+          undefined,
+          { sensitivity: "base", numeric: true }
+        );
+        return payeeSortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }
+
+  function togglePayeeSort() {
+    if (!payeeSortEnabled) {
+      payeeSortEnabled = true;
+      payeeSortDirection = "asc";
+    } else if (payeeSortDirection === "asc") {
+      payeeSortDirection = "desc";
+    } else {
+      payeeSortEnabled = false;
+    }
+
+    const button = document.getElementById("payeeSortBtn");
+    const icon = document.getElementById("payeeSortIcon");
+
+    if (payeeSortEnabled) {
+      icon.textContent = payeeSortDirection === "asc" ? "↑" : "↓";
+      button.setAttribute(
+        "aria-label",
+        payeeSortDirection === "asc" ? "Payee sorted A to Z" : "Payee sorted Z to A"
+      );
+      button.title = payeeSortDirection === "asc" ? "Sorted A to Z — click for Z to A" : "Sorted Z to A — click to clear sorting";
+    } else {
+      icon.textContent = "↕";
+      button.setAttribute("aria-label", "Sort payee A to Z");
+      button.title = "Click to sort Payee A to Z";
+    }
+
+    displayReport();
+  }
+
+  function clearFilters() {
+    document.querySelectorAll(".column-filter").forEach(input => {
+      input.value = "";
+    });
+
+    payeeSortEnabled = false;
+    payeeSortDirection = "asc";
+    const sortIcon = document.getElementById("payeeSortIcon");
+    const sortButton = document.getElementById("payeeSortBtn");
+    if (sortIcon) sortIcon.textContent = "↕";
+    if (sortButton) {
+      sortButton.setAttribute("aria-label", "Sort payee A to Z");
+      sortButton.title = "Click to sort Payee A to Z";
+    }
+
+    displayReport();
+  }
+
+  function displayReport() {
+    const body = document.getElementById("reportBody");
+    const filteredData = getFilteredData();
+
+    body.innerHTML = "";
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    filteredData.forEach(record => {
+      totalDebit += Number(record.debitAmount) || 0;
+      totalCredit += Number(record.creditAmount) || 0;
+
+      const tr = document.createElement("tr");
+
+      getRecordValues(record).forEach((value, index) => {
+        const td = document.createElement("td");
+        td.textContent = value ?? "";
+
+        if (index === 7 || index === 10) {
+          td.className = "amount";
+        }
+
+        tr.appendChild(td);
+      });
+
+      body.appendChild(tr);
+    });
+
+    if (filteredData.length === 0) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 11;
+      td.className = "empty";
+      td.textContent = generatedData.length
+        ? "No matching accounting records found. Try changing or clearing your filters."
+        : "No report generated.";
+      tr.appendChild(td);
+      body.appendChild(tr);
+    }
+
+    document.getElementById("totalRecords").textContent =
+      filteredData.length.toLocaleString();
+
+    document.getElementById("totalSheets").textContent =
+      new Set(filteredData.map(record => record.sheetName)).size.toLocaleString();
+
+    document.getElementById("totalDebit").textContent =
+      formatAmount(totalDebit);
+
+    document.getElementById("totalCredit").textContent =
+      formatAmount(totalCredit);
+
+    const hasFilters = Array.from(
+      document.querySelectorAll(".column-filter")
+    ).some(input => input.value.trim() !== "");
+
+    document.getElementById("filterResultText").innerHTML = hasFilters
+      ? "<strong>" + filteredData.length.toLocaleString() +
+        "</strong> matching records out of <strong>" +
+        generatedData.length.toLocaleString() + "</strong> total records"
+      : "Showing all <strong>" +
+        generatedData.length.toLocaleString() + "</strong> records";
+
+    document.getElementById("reportDescription").textContent =
+      selectedFileName + " | " +
+      document.getElementById("monthSelect").value +
+      " | Consolidated Report";
+
+    document.getElementById("reportPanel").style.display = "block";
+  }
+
+  // Apply filters as the user types. Each column can be filtered
+  // independently, and multiple column filters work together.
+  document.addEventListener("input", function(event) {
+    if (event.target.classList.contains("column-filter")) {
+      displayReport();
+    }
+  });
+
+  // ==========================================
+  // EXPORT EXCEL
+  // ==========================================
+
+  function downloadExcel() {
+
+    const exportData = getFilteredData();
+    if (!exportData.length) {
+      showStatus("There are no matching records to export.", "error");
+      return;
+    }
+
+    const rows = [
+      HEADERS,
+      ...exportData.map(record => [
+
+        record.sheetName,
+        record.month,
+        record.business,
+        record.tin,
+        record.payee,
+        record.particular,
+        record.debit,
+        record.debitAmount,
+        record.taxType,
+        record.credit,
+        record.creditAmount
+
+      ])
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    ws["!cols"] = [
+      { wch: 18 },
+      { wch: 14 },
+      { wch: 20 },
+      { wch: 20 },
+      { wch: 35 },
+      { wch: 35 },
+      { wch: 35 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 35 },
+      { wch: 16 }
+    ];
+
+    // Format amount columns.
+    for (let r = 2; r <= rows.length; r++) {
+
+      ["H", "K"].forEach(col => {
+
+        const cell = ws[col + r];
+
+        if (cell) {
+          cell.t = "n";
+          cell.z = "#,##0.00;[Red](#,##0.00);-";
+        }
+
+      });
+
+    }
+
+    // Add Excel table autofilter.
+    ws["!autofilter"] = {
+      ref: "A1:K" + rows.length
+    };
+
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      "GENERATED REPORT"
+    );
+
+    XLSX.writeFile(
+      wb,
+      "Accounting_Report_" +
+      document.getElementById("monthSelect").value +
+      ".xlsx"
+    );
+
+  }
+
+  // ==========================================
+  // EXPORT CSV
+  // ==========================================
+
+  function downloadCSV() {
+
+    const exportData = getFilteredData();
+    if (!exportData.length) {
+      showStatus("There are no matching records to export.", "error");
+      return;
+    }
+
+    const rows = [
+      HEADERS,
+      ...exportData.map(record => [
+
+        record.sheetName,
+        record.month,
+        record.business,
+        record.tin,
+        record.payee,
+        record.particular,
+        record.debit,
+        record.debitAmount,
+        record.taxType,
+        record.credit,
+        record.creditAmount
+
+      ])
+    ];
+
+    const csv = rows.map(row =>
+      row.map(value =>
+        '"' + String(value ?? "").replace(/"/g, '""') + '"'
+      ).join(",")
+    ).join("\r\n");
+
+    const blob = new Blob(
+      ["\uFEFF" + csv],
+      { type: "text/csv;charset=utf-8;" }
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download =
+      "Accounting_Report_" +
+      document.getElementById("monthSelect").value +
+      ".csv";
+
+    link.click();
+
+    URL.revokeObjectURL(url);
+
+  }
+
+  // ==========================================
+  // UTILITIES
+  // ==========================================
+
+  function formatAmount(value) {
+
+    return Number(value || 0).toLocaleString("en-PH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+  }
+
+  function escapeHTML(value) {
+
+    return String(value).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    })[char]);
+
+  }
+
+  function showStatus(message, type) {
+
+    const box = document.getElementById("statusBox");
+
+    box.textContent = message;
+    box.className = "status " + type;
+
+  }
+
+  // ==========================================
+  // RESET SYSTEM
+  // ==========================================
+
+  function resetSystem() {
+
+    if (!confirm("Are you sure you want to reset the system?")) {
+      return;
+    }
+
+    workbook = null;
+    generatedData = [];
+    selectedFileName = "";
+    payeeSortEnabled = false;
+    payeeSortDirection = "asc";
+
+    fileInput.value = "";
+    const payeeSortIcon = document.getElementById("payeeSortIcon");
+    if (payeeSortIcon) payeeSortIcon.textContent = "↕";
+
+    document.getElementById("fileInfo").style.display = "none";
+
+    document.getElementById("sheetList").innerHTML =
+      '<div class="empty">Upload Excel to load sheets.</div>';
+
+    document.getElementById("sheetCount").textContent =
+      "0 sheets available";
+
+    document.getElementById("monthSelect").value = "";
+
+    document.getElementById("reportPanel").style.display = "none";
+
+    document.getElementById("generateBtn").disabled = true;
+
+    showStatus("System has been reset.", "success");
+
+  }
+
+</script>
+
+</body>
+</html>
