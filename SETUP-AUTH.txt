@@ -17,3 +17,37 @@ SECURITY LIMITS TO KNOW:
 - The Documents page uses browser IndexedDB, not shared Supabase Storage.
 - Permission gates in the website do not make locally stored documents or generated Excel files secure across machines. For confidential multi-user tax records, migrate files and reports to Supabase Storage + database with server-enforced RLS policies before production.
 - For production deployment use HTTPS, restricted signup policies, MFA for Owner, and reviewed database rules.
+
+GITHUB PAGES / LOGIN TROUBLESHOOTING:
+- GitHub hosts the website; portal accounts are created separately in Supabase Auth.
+- Signing into the Supabase dashboard with GitHub does not create a Remilly's portal account.
+- Register through "Create staff account" using your email and a new portal password.
+- Enable the Email provider in your Supabase project.
+- For GitHub Pages, set Authentication > URL Configuration > Site URL to the
+  actual portal URL, including the repository path (https://jeffdavila01.github.io/Remillys/).
+- Add that exact URL to Redirect URLs too. If using index.html explicitly, add
+  that URL separately, as well as your Live Server URL for local development.
+- The website now requests email confirmation redirects to the page where you registered.
+  Supabase must allow that URL; otherwise it may fall back to the configured Site URL.
+- After email confirmation, the Owner must approve the account. For the first
+  Owner, run the commented owner UPDATE in supabase-setup.sql with your email.
+- If login still fails, record the exact message shown above the login form.
+
+EXACT SETTINGS FOR THIS DEPLOYMENT:
+Site URL:
+https://jeffdavila01.github.io/Remillys/
+
+Add these Redirect URLs (keep existing localhost entries):
+https://jeffdavila01.github.io/Remillys/
+https://jeffdavila01.github.io/Remillys/index.html
+
+Upload the updated auth.js to the GitHub Pages publishing source, then wait for
+its deployment to finish. The local edit does not automatically update GitHub Pages.
+The repository path is /Remillys/ with a capital R.
+
+PASSWORD RECOVERY:
+Deploy index.html and auth.js together. Enter your registered email on the login
+page, select Forgot password, and open the latest recovery email in the same
+browser. Choose and confirm a new password, then log in again. This updates only
+the Auth password; Owner/Staff roles, approval status, and permissions stay intact.
+If no email arrives, check spam and Authentication > Users in the correct project.
